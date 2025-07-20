@@ -22,11 +22,10 @@ def get_data(ticker, period="2y"):
         st.error(f"❌ {ticker} 缺少必要欄位，資料格式異常")
         return pd.DataFrame()
 
-    df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
-
     try:
+        df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
+        df = df.dropna(subset=['Date'])  # ⬅️ 清掉轉換失敗的
         df['Month'] = df['Date'].dt.to_period('M')
-        df = df.dropna(subset=['Month'])
         df = df.drop_duplicates(subset='Month', keep='last')
     except Exception as e:
         st.error(f"❌ {ticker} 建立 Month 欄位失敗：{e}")
