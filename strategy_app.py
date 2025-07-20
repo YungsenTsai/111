@@ -1,4 +1,4 @@
-# 策略通 App（最終穩定版）
+# 策略通 App（最終修正 - Month 衝突解法）
 import streamlit as st
 import pandas as pd
 import yfinance as yf
@@ -7,7 +7,7 @@ st.set_page_config(layout="centered", page_title="策略通", page_icon="🎯")
 st.markdown("<h1 style='text-align:center; color:white;'>策略通：TQQQ＋TMF 輪動策略</h1>", unsafe_allow_html=True)
 st.markdown("<style>body { background-color: #121212; color: white; }</style>", unsafe_allow_html=True)
 
-# ✅ 穩定的 get_data 函數
+# ✅ 修正 get_data，處理 Month 衝突
 def get_data(ticker, period="2y"):
     df = yf.download(ticker, period=period, interval="1mo", progress=False)
 
@@ -15,7 +15,6 @@ def get_data(ticker, period="2y"):
         st.error(f"❌ 無法抓取 {ticker} 的資料")
         return None
 
-    # 確保 index 是 datetime（yfinance 有時會回傳 object）
     if not isinstance(df.index, pd.DatetimeIndex):
         try:
             df.index = pd.to_datetime(df.index)
@@ -29,6 +28,10 @@ def get_data(ticker, period="2y"):
     if 'Date' not in df.columns or 'Close' not in df.columns:
         st.error(f"❌ {ticker} 缺少必要欄位（Date 或 Close），目前欄位：{list(df.columns)}")
         return None
+
+    # Month 欄位先刪除避免 dtype 衝突
+    if 'Month' in df.columns:
+        df.drop(columns=['Month'], inplace=True)
 
     try:
         df['Month'] = df['Date'].dt.to_period('M')
@@ -47,7 +50,7 @@ qqq = get_data("QQQ")
 if any(x is None or x.empty for x in [tqqq, tmf, qqq]):
     st.stop()
 
-# ✅ 計算欄位與策略判斷
+# ✅ 資料處理與策略判斷
 df = pd.DataFrame({
     'TQQQ_close': tqqq['Close'],
     'TMF_close': tmf['Close'],
@@ -69,6 +72,6 @@ def decide(row):
 df['建議'] = df.apply(decide, axis=1)
 df = df.tail(12)
 
-# ✅ 顯示建議結果
+# ✅ 顯示結果
 st.table(df[['TQQQ_ret','TMF_ret','TQQQ_3mo','TMF_3mo','QQQ_above_MA','建議']].round(3))
 st.markdown("**📌 本月建議：**  " + df['建議'].iloc[-1])
