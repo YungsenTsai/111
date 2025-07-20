@@ -28,7 +28,7 @@ def get_data(ticker, period="2y"):
     if 'Date' not in df.columns or 'Close' not in df.columns:
         st.error(f"❌ {ticker} 缺少必要欄位（Date 或 Close），目前欄位：{list(df.columns)}")
         return None
-st.write(f"📊 {ticker} 原始欄位：{df.columns.tolist()}")
+
     # Month 欄位先刪除避免 dtype 衝突
     if 'Month' in df.columns:
         df.drop(columns=['Month'], inplace=True)
