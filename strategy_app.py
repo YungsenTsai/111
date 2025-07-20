@@ -15,7 +15,8 @@ def get_data(ticker, period="2y"):
         st.error(f"❌ 無法抓取 {ticker} 的資料，請稍後再試")
         return pd.DataFrame()
 
-    df = df.reset_index()  # ✨ 把 Date 變成欄位（不需檢查欄位存不存在）
+    df = df.reset_index()  # 確保有 Date 欄位
+    df['Date'] = pd.to_datetime(df['Date'])  # 🔥 轉換成 datetime 才能 dt.to_period
 
     df['Month'] = df['Date'].dt.to_period('M')
     df = df.drop_duplicates(subset='Month', keep='last')
