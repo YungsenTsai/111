@@ -15,24 +15,20 @@ def get_data(ticker, period="2y"):
         st.error(f"❌ 無法抓取 {ticker} 的資料，請稍後再試")
         return pd.DataFrame()
 
-    if 'Date' not in df.columns:
-        df = df.reset_index()
-
-    if not pd.api.types.is_datetime64_any_dtype(df['Date']):
-        try:
-            df['Date'] = pd.to_datetime(df['Date'])
-        except:
-            st.error(f"❌ {ticker} 的日期格式錯誤，無法轉換")
-            return pd.DataFrame()
-
-    try:
-        df['Month'] = df['Date'].dt.to_period('M')
-        df = df.drop_duplicates(subset='Month', keep='last')
-    except KeyError:
-        st.error(f"❌ {ticker} 缺少 Month 欄位，資料格式異常")
+    # 檢查是否有 Close 欄位
+    if 'Close' not in df.columns:
+        st.error(f"❌ {ticker} 缺少 Close 欄位，資料格式異常")
         return pd.DataFrame()
 
-    df.set_index('Date', inplace=True)
+    df = df.reset_index()
+
+    if 'Date' in df.columns:
+        df['Month'] = df['Date'].dt.to_period('M')
+        df = df.drop_duplicates(subset='Month', keep='last')
+        df.set_index('Date', inplace=True)
+    else:
+        st.error(f"❌ {ticker} 缺少 Date 欄位，資料格式異常")
+        return pd.DataFrame()
 
     return df
 tqqq = get_data("TQQQ")
