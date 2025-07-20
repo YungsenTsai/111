@@ -15,21 +15,31 @@ def get_data(ticker, period="2y"):
         st.error(f"❌ 無法抓取 {ticker} 的資料，請稍後再試")
         return pd.DataFrame()
 
-    # 檢查是否有 Close 欄位
+    df = df.reset_index()
+
+    # 檢查必要欄位
+    if 'Date' not in df.columns:
+        st.error(f"❌ {ticker} 缺少 Date 欄位，資料格式異常")
+        return pd.DataFrame()
     if 'Close' not in df.columns:
         st.error(f"❌ {ticker} 缺少 Close 欄位，資料格式異常")
         return pd.DataFrame()
 
-    df = df.reset_index()
-
-    if 'Date' in df.columns:
+    # 加入 Month 欄位
+    try:
         df['Month'] = df['Date'].dt.to_period('M')
-        df = df.drop_duplicates(subset='Month', keep='last')
-        df.set_index('Date', inplace=True)
-    else:
-        st.error(f"❌ {ticker} 缺少 Date 欄位，資料格式異常")
+    except Exception as e:
+        st.error(f"❌ {ticker} 建立 Month 欄位失敗：{e}")
         return pd.DataFrame()
 
+    # 確認 Month 欄位成功後再 drop duplicates
+    if 'Month' in df.columns:
+        df = df.drop_duplicates(subset='Month', keep='last')
+    else:
+        st.error(f"❌ {ticker} 缺少 Month 欄位，資料格式異常")
+        return pd.DataFrame()
+
+    df.set_index('Date', inplace=True)
     return df
 tqqq = get_data("TQQQ")
 tmf = get_data("TMF")
