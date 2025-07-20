@@ -1,4 +1,4 @@
-# 策略通 App（最終修正 v2 - 完全修復 Month 錯誤）
+# 策略通 App - Month 錯誤最終解法 ✅
 import streamlit as st
 import pandas as pd
 import yfinance as yf
@@ -14,33 +14,25 @@ def get_data(ticker, period="2y"):
         st.error(f"❌ 無法抓取 {ticker} 的資料")
         return None
 
-    # 確保 index 是 datetime，再 reset
-    if not isinstance(df.index, pd.DatetimeIndex):
-        try:
-            df.index = pd.to_datetime(df.index, errors='coerce')
-        except Exception as e:
-            st.error(f"❌ {ticker} 日期轉換失敗：{e}")
-            return None
-
-    df.index.name = 'Date'
     df = df.reset_index()
 
-    # 確保 Date 欄位為 datetime
-    try:
-        df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
-        df = df.dropna(subset=['Date'])
-    except Exception as e:
-        st.error(f"❌ {ticker} Date 欄位轉換失敗：{e}")
+    # 自動偵測哪個欄位是時間欄
+    datetime_col = None
+    for col in df.columns:
+        if pd.api.types.is_datetime64_any_dtype(df[col]):
+            datetime_col = col
+            break
+
+    if datetime_col is None:
+        st.error(f"❌ {ticker} 找不到時間欄位，無法建立 Month")
         return None
 
-    # 避免衝突，先刪除 Month 欄位
-    if 'Month' in df.columns:
-        df = df.drop(columns=['Month'])
-
     try:
-        df['Month'] = df['Date'].dt.to_period('M')
+        df[datetime_col] = pd.to_datetime(df[datetime_col], errors='coerce')
+        df = df.dropna(subset=[datetime_col])
+        df['Month'] = df[datetime_col].dt.to_period('M')
         df = df.drop_duplicates(subset='Month', keep='last')
-        df.set_index('Date', inplace=True)
+        df.set_index(datetime_col, inplace=True)
         return df
     except Exception as e:
         st.error(f"❌ {ticker} 建立 Month 欄位錯誤：{e}")
@@ -54,7 +46,7 @@ qqq = get_data("QQQ")
 if any(x is None or x.empty for x in [tqqq, tmf, qqq]):
     st.stop()
 
-# ⬇️ 計算邏輯
+# ⬇️ 資料處理與策略邏輯
 df = pd.DataFrame({
     'TQQQ_close': tqqq['Close'],
     'TMF_close': tmf['Close'],
