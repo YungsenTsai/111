@@ -10,12 +10,14 @@ st.markdown("<style>body { background-color: #121212; color: white; }</style>", 
 
 def get_data(ticker, period="2y"):
     df = yf.download(ticker, period=period, interval="1mo", progress=False)
+    if df.empty:
+        st.error(f"無法抓取 {ticker} 的資料，請稍後再試")
+        return pd.DataFrame()
     df = df.reset_index()
     df['Month'] = df['Date'].dt.to_period('M')
-    df = df.drop_duplicates('Month', keep='last')
+    df = df.drop_duplicates(subset='Month', keep='last')
     df.set_index('Date', inplace=True)
     return df
-
 tqqq = get_data("TQQQ")
 tmf = get_data("TMF")
 qqq = get_data("QQQ")
