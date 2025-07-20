@@ -15,17 +15,23 @@ def get_data(ticker, period="2y"):
         st.error(f"❌ 無法抓取 {ticker} 的資料，請稍後再試")
         return pd.DataFrame()
 
-    # 有些資料是把日期存在 index，要轉換成欄位
-    if not 'Date' in df.columns:
+    if 'Date' not in df.columns:
         df = df.reset_index()
 
-    # 有些時候日期欄位不是 datetime，要轉換格式
     if not pd.api.types.is_datetime64_any_dtype(df['Date']):
-        df['Date'] = pd.to_datetime(df['Date'])
+        try:
+            df['Date'] = pd.to_datetime(df['Date'])
+        except:
+            st.error(f"❌ {ticker} 的日期格式錯誤，無法轉換")
+            return pd.DataFrame()
 
-    # 新增月份欄位並去重
-    df['Month'] = df['Date'].dt.to_period('M')
-    df = df.drop_duplicates(subset='Month', keep='last')
+    try:
+        df['Month'] = df['Date'].dt.to_period('M')
+        df = df.drop_duplicates(subset='Month', keep='last')
+    except KeyError:
+        st.error(f"❌ {ticker} 缺少 Month 欄位，資料格式異常")
+        return pd.DataFrame()
+
     df.set_index('Date', inplace=True)
 
     return df
