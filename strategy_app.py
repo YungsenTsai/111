@@ -16,15 +16,20 @@ def get_data(ticker, period="2y"):
         st.error(f"❌ 無法抓取 {ticker} 的資料，請稍後再試")
         return pd.DataFrame()
 
+    # 若 index 沒有欄名，強制設為 'Date'
+    if df.index.name is None:
+        df.index.name = 'Date'
+
     df = df.reset_index()
 
+    # 檢查欄位是否有 Date 跟 Close
     if 'Date' not in df.columns or 'Close' not in df.columns:
-        st.error(f"❌ {ticker} 缺少必要欄位，資料格式異常")
+        st.error(f"❌ {ticker} 缺少必要欄位（Date 或 Close），實際欄位：{list(df.columns)}")
         return pd.DataFrame()
 
     try:
         df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
-        df = df.dropna(subset=['Date'])  # ⬅️ 清掉轉換失敗的
+        df = df.dropna(subset=['Date'])
         df['Month'] = df['Date'].dt.to_period('M')
         df = df.drop_duplicates(subset='Month', keep='last')
     except Exception as e:
