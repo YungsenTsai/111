@@ -10,19 +10,17 @@ st.markdown("<style>body { background-color: #121212; color: white; }</style>", 
 
 def get_data(ticker, period="2y"):
     df = yf.download(ticker, period=period, interval="1mo", progress=False)
-    
+
     if df.empty:
         st.error(f"❌ 無法抓取 {ticker} 的資料，請稍後再試")
         return pd.DataFrame()
-    
-    if 'Date' not in df.columns:
-        df = df.reset_index()
-    
-    if 'Date' in df.columns:
-        df['Month'] = df['Date'].dt.to_period('M')
-        df = df.drop_duplicates(subset='Month', keep='last')
-        df.set_index('Date', inplace=True)
-    
+
+    df = df.reset_index()  # ✨ 把 Date 變成欄位（不需檢查欄位存不存在）
+
+    df['Month'] = df['Date'].dt.to_period('M')
+    df = df.drop_duplicates(subset='Month', keep='last')
+    df.set_index('Date', inplace=True)
+
     return df
 tqqq = get_data("TQQQ")
 tmf = get_data("TMF")
